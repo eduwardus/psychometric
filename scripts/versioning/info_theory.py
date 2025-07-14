@@ -1,21 +1,31 @@
 import numpy as np
-from ..psychometric_graph import PsychometricGraph
+from typing import List, Dict
+from ..psychometric_graph import Item
 
-def calculate_fisher_info(graph: PsychometricGraph, theta: float = 0.0) -> float:
+def fisher_information(item: Item, theta: float) -> float:
     """
-    Calcula la información de Fisher para el grafo completo en un punto theta.
-    Basado en el modelo de respuesta al ítem (IRT).
+    Calcula la información de Fisher para un ítem en un nivel de habilidad theta (IRT 2PL)
+    
+    Args:
+        item: Objeto ítem con parámetros 'discrimination' (a) y 'difficulty' (b)
+        theta: Nivel de habilidad del evaluado
+    
+    Returns:
+        Información de Fisher para el ítem en theta
     """
-    total_info = 0.0
-    for item in graph.items:
-        a = item.params["discrimination"]
-        b = item.params["difficulty"]
-        p = 1 / (1 + np.exp(-a * (theta - b)))  # Función logística
-        total_info += (a ** 2) * p * (1 - p)
-    return total_info
+    a = item.params['discrimination']
+    b = item.params['difficulty']
+    p = 1 / (1 + np.exp(-a * (theta - b)))  # Función de respuesta al ítem
+    return (a ** 2) * p * (1 - p)
 
-def select_optimal_items(graph: PsychometricGraph, theta: float, n_items: int = 5) -> List[str]:
-    """Selecciona los ítems más informativos para un nivel de habilidad theta"""
-    items = [(item.id, calculate_fisher_info(graph, theta)) for item in graph.items]
-    items.sort(key=lambda x: x[1], reverse=True)
-    return [item_id for item_id, _ in items[:n_items]]
+def test_information_curve(graph, theta_range: np.ndarray) -> Dict[str, List[float]]:
+    """
+    Genera curvas de información para todos los ítems
+    
+    Returns:
+        Dict: {item_id: [info_theta1, info_theta2, ...]}
+    """
+    return {
+        item.id: [fisher_information(item, theta) for theta in theta_range]
+        for item in graph.items
+    }
